@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String           @id @default(uuid())
+  email        String           @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  memberships  DocumentMember[]
+  versions     DocumentVersion[]
+}
+
+model Document {
+  id           String            @id @default(uuid())
+  title        String
+  ownerId      String
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  members      DocumentMember[]
+  blocks       Block[]
+  versions     DocumentVersion[]
+}
+
+model DocumentMember {
+  id         String   @id @default(uuid())
+  documentId String
+  userId     String
+  role       String   // "OWNER", "EDITOR", "VIEWER"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, userId])
+}
+
+model Block {
+  id             String   @id // client-generated UUID for offline insertion support
+  documentId     String
+  type           String   // "text", "heading", "code", "image", etc.
+  content        String   // text content or JSON-serialized properties
+  positionKey    String   // fractional indexing key for list sorting
+  lamportClock   Int      @default(0)
+  clientId       String   // identifies client that made the update
+  lastModifiedBy String
+  updatedAt      DateTime @default(now())
+
+  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([positionKey])
+}
+
+model DocumentVersion {
+  id         String   @id @default(uuid())
+  documentId String
+  createdById String
+  title      String
+  snapshot   String   // JSON text representation of all blocks in document
+  createdAt  DateTime @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  createdBy  User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}

@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚡ Collaborative Canvas - House of Edtech
 
-## Getting Started
+A high-performance, **Local-First, Collaborative Document Editor** with offline synchronization, deterministic conflict-free resolution (Lamport Clocks + Fractional Indexing), and granular time-travel version control.
 
-First, run the development server:
+Built for the **House of Edtech Fullstack Developer Assignment**.
 
+---
+
+## 🚀 Key Features
+
+- **Local-First Architecture**: Changes are saved instantly to the browser's IndexedDB ([Dexie.js](https://dexie.org/)). Working with documents, blocks, and dashboard operates completely offline with zero UI network blocks.
+- **Background Sync Engine**: Queues local modifications while offline and flushes them to the server when connection is restored.
+- **Conflict Resolution (CRDT)**: Resolves typing and arrangement conflicts deterministically:
+  - **Lamport Logical Clocks**: Sorts chronological events.
+  - **Lexicographical Client IDs**: Resolves concurrent clock ties deterministically without losing data.
+  - **Fractional Indexing**: Orders blocks dynamically and lexicographically.
+- **Time Travel & Snapshots**: Creates immutable snapshots of document states. Restoring a version performs a semantic revert on active canvases by generating clean, higher-clocked update mutations.
+- **Granular Auth & RLS Scoping**: Built-in cookie-based JWT sessions with `OWNER`, `EDITOR`, and `VIEWER` support. Endpoint security prevents viewers from pushing state modifications.
+- **Gemini AI Integration**: Built-in assistant side panel for summarizing and rewriting text blocks.
+- **Out of Memory (OOM) Protection**: Max payload constraints (5MB body limit) on sync APIs.
+
+---
+
+## 🛠️ Technology Stack
+
+- **Framework**: Next.js 16 (App Router, Turbopack, TypeScript)
+- **Database**: SQLite (via Prisma ORM v5)
+- **Client Storage**: Dexie.js (IndexedDB wrapper)
+- **Styling**: Tailwind CSS v4 & custom Glassmorphic variables
+- **AI Engine**: Google Gemini API SDK (`@google/generative-ai`)
+
+---
+
+## 📦 Getting Started
+
+### 1. Installation
+Clone the repository, navigate to the folder, and install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Environment Variables
+Create a `.env` file in the root directory:
+```env
+DATABASE_URL="file:./dev.db"
+JWT_SECRET="generate-a-secure-key"
+GEMINI_API_KEY="AIzaSyYourGeminiApiKeyHere" # Optional: to activate Gemini AI
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Run Migrations
+Run the initial Prisma migration to set up the SQLite database:
+```bash
+npx prisma migrate dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Run Dev Server
+Launch the development server:
+```bash
+npm run dev
+```
+Open `http://localhost:3000` to start editing.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🧪 Simulation Testing
+Run the conflict resolution unit tests:
+```bash
+node test-sync.js
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## ☁️ Deployment Instructions
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Deploy to Vercel
+1. Push the code to a GitHub repository.
+2. Link the repository to your [Vercel Dashboard](https://vercel.com).
+3. Set your environment variables in the Vercel project settings:
+   - `JWT_SECRET`: A secure random string.
+   - `GEMINI_API_KEY`: Your Google Gemini API Key.
+4. **Database Setup**: Since SQLite is file-based and Vercel functions are stateless, migrate the database to a PostgreSQL instance (e.g. Supabase, Neon, or RDS) for production:
+   - Swap the database provider in `prisma/schema.prisma`:
+     ```prisma
+     datasource db {
+       provider = "postgresql"
+       url      = env("DATABASE_URL")
+     }
+     ```
+   - Change your `DATABASE_URL` environment variable on Vercel to point to your PostgreSQL database.
+   - Run `npx prisma db push` or `npx prisma migrate deploy` to deploy the schema.
